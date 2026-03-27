@@ -3,23 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yetkili Spor Lig Yönetim Paneli</title>
+    <title>Spor Lig Yönetim Paneli</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; transition: background-color 0.3s; }
-        .tab-active { border-bottom: 3px solid white; font-weight: bold; }
         .loader { border-top-color: white; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Temalar */
         .sport-football { --primary-bg: #15803d; --accent-bg: #f0fdf4; --sport-shadow: rgba(21, 128, 61, 0.2); }
         .sport-volleyball { --primary-bg: #1d4ed8; --accent-bg: #eff6ff; --sport-shadow: rgba(29, 78, 216, 0.2); }
         
         .admin-only { display: none; }
         body.is-admin .admin-only { display: block; }
         
-        /* Branş Buton Efektleri */
         .sport-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .sport-btn.active { 
             background-color: white; 
@@ -31,39 +28,38 @@
 <body class="sport-football">
     <div id="app" class="max-w-6xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden my-4 md:my-8">
         
-        <!-- Loading -->
-        <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-80 z-[100] flex flex-col items-center justify-center">
-            <div class="loader w-14 h-14 border-4 border-gray-400 rounded-full mb-4"></div>
-            <p class="text-white font-medium">Sistem Hazırlanıyor...</p>
+        <!-- Yükleme Ekranı -->
+        <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-80 z-[100] flex flex-col items-center justify-center p-6 text-center">
+            <div id="spinner" class="loader w-14 h-14 border-4 border-gray-400 rounded-full mb-4"></div>
+            <div id="loadingStatusContainer" class="text-white max-w-md">
+                <p class="font-medium text-lg mb-2" id="loadingText">Sistem Hazırlanıyor...</p>
+                <div id="errorInstructions" class="hidden mt-4 p-4 bg-red-900/50 border border-red-500 rounded-2xl text-sm">
+                    <p class="font-bold mb-2">⚠️ Firebase Yapılandırma Hatası!</p>
+                    <p class="text-red-200">Lütfen Firebase Console'da <b>Authentication</b> bölümüne gidin, <b>Sign-in method</b> sekmesinden <b>Anonymous</b> (Anonim) girişini "Enable" (Etkin) yapın ve kaydedin.</p>
+                </div>
+            </div>
         </div>
 
         <!-- Header -->
         <header id="mainHeader" class="bg-[var(--primary-bg)] p-6 text-white transition-colors duration-500 relative">
             <div class="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="text-center md:text-left">
-                    <h1 class="text-3xl font-black tracking-tight flex items-center gap-2 justify-center md:justify-start">
-                        🏆 LİG PANELİ
-                    </h1>
+                    <h1 class="text-3xl font-black tracking-tight">🏆 LİG PANELİ</h1>
                     <p class="text-white/80 text-xs uppercase tracking-widest font-bold mt-1" id="currentSportLabel">Futbol Federasyonu</p>
                 </div>
                 
                 <div class="flex items-center gap-6">
-                    <!-- Modern Sport Switcher -->
                     <div class="flex bg-black/20 p-1.5 rounded-2xl backdrop-blur-md">
                         <button onclick="changeSport('football')" id="btn-football" 
-                            class="sport-btn active flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm">
-                            <span class="text-lg">⚽</span>
-                            <span class="hidden sm:inline">FUTBOL</span>
+                            class="sport-btn active flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-green-700">
+                            <span class="text-lg">⚽</span><span class="hidden sm:inline">FUTBOL</span>
                         </button>
                         <button onclick="changeSport('volleyball')" id="btn-volleyball" 
                             class="sport-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white/70 hover:text-white">
-                            <span class="text-lg">🏐</span>
-                            <span class="hidden sm:inline">VOLEYBOL</span>
+                            <span class="text-lg">🏐</span><span class="hidden sm:inline">VOLEYBOL</span>
                         </button>
                     </div>
-
-                    <!-- Admin Login -->
-                    <button id="adminToggle" onclick="toggleAdminLogin()" class="bg-white/20 p-3 rounded-2xl hover:bg-white/30 transition-all active:scale-95 shadow-lg">
+                    <button id="adminToggle" onclick="toggleAdminLogin()" class="bg-white/20 p-3 rounded-2xl hover:bg-white/30 transition-all shadow-lg">
                         <span id="lockIcon" class="text-xl">🔒</span>
                     </button>
                 </div>
@@ -71,35 +67,29 @@
         </header>
 
         <!-- Nav -->
-        <nav class="flex border-b bg-gray-50 overflow-x-auto sticky top-0 z-10 shadow-sm">
-            <button onclick="switchTab('teams')" id="tab-teams" class="flex-1 py-5 px-6 text-gray-500 hover:text-[var(--primary-bg)] transition-all flex items-center justify-center gap-2 border-b-4 border-transparent font-bold">Takımlar</button>
-            <button onclick="switchTab('fixtures')" id="tab-fixtures" class="flex-1 py-5 px-6 text-gray-500 hover:text-[var(--primary-bg)] transition-all flex items-center justify-center gap-2 border-b-4 border-transparent font-bold">Fikstür</button>
-            <button onclick="switchTab('standings')" id="tab-standings" class="flex-1 py-5 px-6 text-gray-500 hover:text-[var(--primary-bg)] transition-all flex items-center justify-center gap-2 border-b-4 border-transparent font-bold">Puan Durumu</button>
+        <nav class="flex border-b bg-gray-50 sticky top-0 z-10 shadow-sm">
+            <button onclick="switchTab('teams')" id="tab-teams" class="flex-1 py-5 px-6 text-[var(--primary-bg)] border-b-4 border-[var(--primary-bg)] bg-white font-bold">Takımlar</button>
+            <button onclick="switchTab('fixtures')" id="tab-fixtures" class="flex-1 py-5 px-6 text-gray-500 border-b-4 border-transparent font-bold">Fikstür</button>
+            <button onclick="switchTab('standings')" id="tab-standings" class="flex-1 py-5 px-6 text-gray-500 border-b-4 border-transparent font-bold">Puan Durumu</button>
         </nav>
 
         <main class="p-6 min-h-[500px]">
-            
-            <!-- Teams Section -->
             <section id="section-teams">
                 <div class="grid md:grid-cols-2 gap-6 mb-8 admin-only">
-                    <div class="bg-[var(--accent-bg)] p-6 rounded-3xl border border-[var(--primary-bg)]/10 shadow-inner">
-                        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                            <span class="p-2 bg-white rounded-lg shadow-sm">➕</span> Yeni Takım Kaydı
-                        </h2>
+                    <div class="bg-[var(--accent-bg)] p-6 rounded-3xl border border-[var(--primary-bg)]/10">
+                        <h2 class="text-lg font-bold mb-4">➕ Yeni Takım Kaydı</h2>
                         <div class="flex gap-2">
-                            <input type="text" id="teamNameInput" placeholder="Takım Adı Giriniz" class="flex-1 p-3.5 border-2 rounded-2xl outline-none focus:border-[var(--primary-bg)] transition-all shadow-sm">
-                            <button onclick="addTeam()" class="bg-[var(--primary-bg)] text-white px-8 py-2 rounded-2xl font-black shadow-lg hover:brightness-110 active:scale-95 transition-all">EKLE</button>
+                            <input type="text" id="teamNameInput" placeholder="Takım Adı" class="flex-1 p-3.5 border-2 rounded-2xl outline-none focus:border-[var(--primary-bg)]">
+                            <button onclick="addTeam()" class="bg-[var(--primary-bg)] text-white px-8 py-2 rounded-2xl font-black">EKLE</button>
                         </div>
                     </div>
                     <div class="bg-gray-50 p-6 rounded-3xl border border-gray-200 shadow-inner">
-                        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
-                            <span class="p-2 bg-white rounded-lg shadow-sm">👤</span> Oyuncu Ataması
-                        </h2>
+                        <h2 class="text-lg font-bold mb-4">👤 Oyuncu Ataması</h2>
                         <div class="flex flex-col gap-3">
-                            <select id="playerTeamSelect" class="p-3.5 border-2 rounded-2xl bg-white outline-none focus:border-gray-400"></select>
+                            <select id="playerTeamSelect" class="p-3.5 border-2 rounded-2xl bg-white outline-none"></select>
                             <div class="flex gap-2">
-                                <input type="text" id="playerNameInput" placeholder="Oyuncu Adı Soyadı" class="flex-1 p-3.5 border-2 rounded-2xl outline-none shadow-sm">
-                                <button onclick="addPlayer()" class="bg-gray-800 text-white px-8 py-2 rounded-2xl font-black shadow-lg hover:bg-black active:scale-95 transition-all">ATA</button>
+                                <input type="text" id="playerNameInput" placeholder="Oyuncu Adı Soyadı" class="flex-1 p-3.5 border-2 rounded-2xl outline-none">
+                                <button onclick="addPlayer()" class="bg-gray-800 text-white px-8 py-2 rounded-2xl font-black">ATA</button>
                             </div>
                         </div>
                     </div>
@@ -107,7 +97,6 @@
                 <div id="teamsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
             </section>
 
-            <!-- Fixtures Section -->
             <section id="section-fixtures" class="hidden">
                 <div class="bg-[var(--accent-bg)] p-6 rounded-3xl border border-[var(--primary-bg)]/10 mb-8 admin-only shadow-inner">
                     <h2 class="text-lg font-bold mb-4">📅 Maç Planla</h2>
@@ -115,16 +104,14 @@
                         <select id="homeTeamSelect" class="w-full p-3.5 border-2 rounded-2xl bg-white outline-none"></select>
                         <div class="bg-white px-4 py-2 rounded-full font-black text-[var(--primary-bg)] shadow-sm">VS</div>
                         <select id="awayTeamSelect" class="w-full p-3.5 border-2 rounded-2xl bg-white outline-none"></select>
-                        <button onclick="addMatch()" class="w-full md:w-auto bg-[var(--primary-bg)] text-white px-10 py-3.5 rounded-2xl font-black shadow-lg hover:brightness-110 transition-all">FİKSTÜRE EKLE</button>
+                        <button onclick="addMatch()" class="w-full md:w-auto bg-[var(--primary-bg)] text-white px-10 py-3.5 rounded-2xl font-black">PLANLA</button>
                     </div>
                 </div>
                 <div class="space-y-4" id="fixturesList"></div>
             </section>
 
-            <!-- Standings -->
             <section id="section-standings" class="hidden">
                 <div class="overflow-hidden rounded-3xl border border-gray-200 shadow-xl bg-white">
-                    <div class="p-4 bg-gray-50 border-b font-bold text-gray-500 text-sm uppercase tracking-widest">Resmi Sıralama</div>
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-gray-800 text-white">
                             <tr>
@@ -146,58 +133,39 @@
         </main>
     </div>
 
-    <!-- Modals (Admin, Edit, Message) -->
+    <!-- Modallar -->
     <div id="adminModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[130] p-4 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-[2.5rem] max-w-sm w-full shadow-2xl">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">🔑</div>
-                <h3 class="text-2xl font-black">Yönetici Girişi</h3>
-                <p class="text-gray-400 text-sm">İşlem yapmak için şifrenizi girin</p>
-            </div>
-            <input type="password" id="adminPasswordInput" placeholder="••••••" class="w-full p-4 border-2 rounded-2xl mb-4 text-center text-xl tracking-widest outline-none focus:border-blue-500 transition-all">
+        <div class="bg-white p-8 rounded-[2.5rem] max-w-sm w-full shadow-2xl text-center">
+            <h3 class="text-2xl font-black mb-4">Yönetici Girişi</h3>
+            <input type="password" id="adminPasswordInput" placeholder="Şifre" class="w-full p-4 border-2 rounded-2xl mb-4 text-center outline-none focus:border-blue-500">
             <div class="flex gap-3">
-                <button onclick="closeAdminModal()" class="flex-1 bg-gray-100 py-4 rounded-2xl font-bold hover:bg-gray-200 transition-colors">İptal</button>
-                <button onclick="checkAdminPassword()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Giriş</button>
+                <button onclick="closeAdminModal()" class="flex-1 bg-gray-100 py-3 rounded-2xl font-bold">İptal</button>
+                <button onclick="checkAdminPassword()" class="flex-1 bg-blue-600 text-white py-3 rounded-2xl font-bold">Giriş</button>
             </div>
-        </div>
-    </div>
-
-    <div id="editModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-[2.5rem] max-w-lg w-full shadow-2xl flex flex-col max-h-[90vh]">
-            <h3 class="text-2xl font-black mb-6">Takım Düzenle</h3>
-            <div class="mb-6">
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Takım İsmi</label>
-                <input type="text" id="editTeamNameInput" class="w-full p-4 border-2 rounded-2xl outline-none focus:border-blue-500 shadow-sm font-bold">
-            </div>
-            <label class="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Oyuncu Kadrosu</label>
-            <div class="flex-1 overflow-y-auto mb-6 pr-2">
-                <div id="editPlayersList" class="space-y-3"></div>
-            </div>
-            <div class="flex gap-4">
-                <button onclick="closeEditModal()" class="flex-1 bg-gray-100 py-4 rounded-2xl font-bold">Vazgeç</button>
-                <button id="saveEditBtn" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg">GÜNCELLE</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="msgModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[140] backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-[2.5rem] max-w-sm w-full mx-4 shadow-2xl text-center">
-            <h3 id="msgTitle" class="text-2xl font-black mb-2"></h3>
-            <p id="msgText" class="text-gray-500 mb-8"></p>
-            <button onclick="closeMsgModal()" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-black transition-all">TAMAM</button>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // Firebase Yapılandırması
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDwS51iNW02YR_xi3B8rLNwULBZ_ZRIXw",
+            authDomain: "ligyonetim.firebaseapp.com",
+            projectId: "ligyonetim",
+            storageBucket: "ligyonetim.firebasestorage.app",
+            messagingSenderId: "1062462053883",
+            appId: "1:1062462053883:web:1daae974b1bc084ed3ff5e",
+            measurementId: "G-F0CWKTKZJ3"
+        };
+
+        // Firebase Servislerini Başlat
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'multisport-lig-v1';
+        const currentDataPath = "spor_lig_v1";
 
         let state = {
             user: null,
@@ -210,33 +178,54 @@
 
         const ADMIN_PASS = "admin123";
 
-        const init = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
+        // Uygulama Başlatma ve Hata Yönetimi
+        const startApp = async () => {
+            try {
+                // Anonymous auth denemesi
                 await signInAnonymously(auth);
+            } catch (err) {
+                console.error("Firebase Başlatma Hatası:", err);
+                
+                // Görsel hata mesajı göster
+                if (err.code === 'auth/configuration-not-found') {
+                    document.getElementById('loadingText').innerText = "Yapılandırma Eksik!";
+                    document.getElementById('errorInstructions').classList.remove('hidden');
+                    document.getElementById('spinner').classList.add('border-red-500');
+                } else {
+                    document.getElementById('loadingText').innerText = "Bağlantı Hatası: " + err.message;
+                }
             }
         };
 
         onAuthStateChanged(auth, (user) => {
             state.user = user;
-            if (user) setupListeners();
+            if (user) {
+                console.log("Giriş yapıldı:", user.uid);
+                setupListeners();
+            }
         });
 
         const setupListeners = () => {
-            const getColPath = (type) => collection(db, 'artifacts', appId, 'public', 'data', `${type}_${state.sport}`);
+            const getColPath = (type) => collection(db, 'data', currentDataPath, `${type}_${state.sport}`);
+            
+            // Gerçek zamanlı dinleyiciler
             onSnapshot(getColPath('teams'), (snap) => {
                 state.teams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderAll();
                 document.getElementById('loadingOverlay').classList.add('hidden');
+            }, (error) => {
+                console.error("Veri Okuma Hatası (Teams):", error);
             });
+
             onSnapshot(getColPath('matches'), (snap) => {
                 state.matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderAll();
+            }, (error) => {
+                console.error("Veri Okuma Hatası (Matches):", error);
             });
         };
 
-        // UI Helpers
+        // UI Fonksiyonları
         window.toggleAdminLogin = () => {
             if (state.isAdmin) {
                 state.isAdmin = false;
@@ -245,49 +234,35 @@
                 renderAll();
             } else {
                 document.getElementById('adminModal').classList.replace('hidden', 'flex');
-                document.getElementById('adminPasswordInput').focus();
             }
         };
 
-        window.closeAdminModal = () => {
-            document.getElementById('adminModal').classList.replace('flex', 'hidden');
-            document.getElementById('adminPasswordInput').value = "";
-        };
+        window.closeAdminModal = () => document.getElementById('adminModal').classList.replace('flex', 'hidden');
 
         window.checkAdminPassword = () => {
-            const pass = document.getElementById('adminPasswordInput').value;
-            if (pass === ADMIN_PASS) {
+            const input = document.getElementById('adminPasswordInput');
+            if (input.value === ADMIN_PASS) {
                 state.isAdmin = true;
                 document.body.classList.add('is-admin');
                 document.getElementById('lockIcon').innerText = "🔓";
-                closeAdminModal(); 
+                input.value = "";
+                closeAdminModal();
                 renderAll();
-                showMsg("Giriş Yapıldı", "Yönetici yetkileri tanımlandı.");
             } else {
-                showMsg("Hata", "Girdiğiniz şifre hatalı.");
+                alert("Hatalı Şifre!");
             }
         };
-
-        document.getElementById('adminPasswordInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') checkAdminPassword();
-        });
 
         window.changeSport = (s) => {
             state.sport = s;
             document.body.className = `sport-${s}` + (state.isAdmin ? ' is-admin' : '');
             document.getElementById('currentSportLabel').innerText = s === 'football' ? 'Futbol Federasyonu' : 'Voleybol Federasyonu';
             
-            // Buton durumlarını güncelle
             const btnF = document.getElementById('btn-football');
             const btnV = document.getElementById('btn-volleyball');
             
-            if(s === 'football') {
-                btnF.className = "sport-btn active flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-green-700";
-                btnV.className = "sport-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white/70 hover:text-white";
-            } else {
-                btnV.className = "sport-btn active flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-blue-700";
-                btnF.className = "sport-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white/70 hover:text-white";
-            }
+            btnF.className = `sport-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm ${s === 'football' ? 'active text-green-700' : 'text-white/70 hover:text-white'}`;
+            btnV.className = `sport-btn flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm ${s === 'volleyball' ? 'active text-blue-700' : 'text-white/70 hover:text-white'}`;
 
             document.getElementById('th-draw').style.display = s === 'football' ? 'table-cell' : 'none';
             document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -296,58 +271,62 @@
 
         window.switchTab = (tab) => {
             ['teams', 'fixtures', 'standings'].forEach(t => {
-                document.getElementById('section-' + t).classList.toggle('hidden', t !== tab);
+                const section = document.getElementById('section-' + t);
+                if(section) section.classList.toggle('hidden', t !== tab);
                 const btn = document.getElementById('tab-' + t);
-                btn.classList.toggle('text-[var(--primary-bg)]', t === tab);
-                btn.classList.toggle('border-[var(--primary-bg)]', t === tab);
-                btn.classList.toggle('bg-white', t === tab);
-                btn.classList.toggle('text-gray-500', t !== tab);
-                btn.classList.toggle('border-transparent', t !== tab);
+                if(btn) btn.className = `flex-1 py-5 px-6 font-bold border-b-4 ${t === tab ? 'text-[var(--primary-bg)] border-[var(--primary-bg)] bg-white' : 'text-gray-500 border-transparent'}`;
             });
         };
 
-        // Actions
+        // Firestore Yazma İşlemleri
         window.addTeam = async () => {
-            if (!state.isAdmin) return;
-            const inp = document.getElementById('teamNameInput');
-            const name = inp.value.trim();
-            if (!name) return;
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', `teams_${state.sport}`, Date.now().toString()), { name, players: [] });
-            inp.value = "";
+            const name = document.getElementById('teamNameInput').value.trim();
+            if (!name || !state.isAdmin || !state.user) return;
+            try {
+                await setDoc(doc(db, 'data', currentDataPath, `teams_${state.sport}`, Date.now().toString()), { name, players: [] });
+                document.getElementById('teamNameInput').value = "";
+            } catch (e) { alert("Takım eklenemedi: " + e.message); }
         };
 
         window.addPlayer = async () => {
-            if (!state.isAdmin) return;
             const tId = document.getElementById('playerTeamSelect').value;
             const pName = document.getElementById('playerNameInput').value.trim();
-            if (!tId || !pName) return;
+            if (!tId || !pName || !state.isAdmin || !state.user) return;
             const team = state.teams.find(t => t.id === tId);
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', `teams_${state.sport}`, tId), { players: [...team.players, pName] });
-            document.getElementById('playerNameInput').value = "";
-        };
-
-        window.saveScore = async (id) => {
-            if (!state.isAdmin) return;
-            const hs = parseInt(document.getElementById(`score-h-${id}`).value);
-            const as = parseInt(document.getElementById(`score-a-${id}`).value);
-            if (isNaN(hs) || isNaN(as)) return;
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', `matches_${state.sport}`, id), { homeScore: hs, awayScore: as, completed: true });
+            if(team) {
+                try {
+                    await updateDoc(doc(db, 'data', currentDataPath, `teams_${state.sport}`, tId), { players: [...(team.players || []), pName] });
+                    document.getElementById('playerNameInput').value = "";
+                } catch (e) { alert("Oyuncu atanamadı."); }
+            }
         };
 
         window.addMatch = async () => {
-            if (!state.isAdmin) return;
             const hId = document.getElementById('homeTeamSelect').value;
             const aId = document.getElementById('awayTeamSelect').value;
-            if (!hId || !aId || hId === aId) return;
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', `matches_${state.sport}`, Date.now().toString()), {
+            if (!hId || !aId || hId === aId || !state.isAdmin || !state.user) return;
+            await setDoc(doc(db, 'data', currentDataPath, `matches_${state.sport}`, Date.now().toString()), {
                 homeId: hId, awayId: aId, homeScore: null, awayScore: null, completed: false
             });
         };
 
-        window.deleteMatch = async (id) => { if (state.isAdmin) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `matches_${state.sport}`, id)); };
-        window.deleteTeam = async (id) => { if (state.isAdmin) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `teams_${state.sport}`, id)); };
+        window.saveScore = async (id) => {
+            const hs = parseInt(document.getElementById(`score-h-${id}`).value);
+            const as = parseInt(document.getElementById(`score-a-${id}`).value);
+            if (isNaN(hs) || isNaN(as) || !state.isAdmin || !state.user) return;
+            await updateDoc(doc(db, 'data', currentDataPath, `matches_${state.sport}`, id), { homeScore: hs, awayScore: as, completed: true });
+        };
 
-        // Renders
+        window.deleteTeam = async (id) => { 
+            if (state.isAdmin && state.user && confirm("Bu takımı silmek istediğinize emin misiniz?")) {
+                await deleteDoc(doc(db, 'data', currentDataPath, `teams_${state.sport}`, id)); 
+            }
+        };
+        window.deleteMatch = async (id) => { 
+            if (state.isAdmin && state.user) await deleteDoc(doc(db, 'data', currentDataPath, `matches_${state.sport}`, id)); 
+        };
+
+        // Render İşlemleri
         function renderAll() {
             renderTeams();
             renderFixtures();
@@ -359,63 +338,55 @@
             const options = state.teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
             ['playerTeamSelect', 'homeTeamSelect', 'awayTeamSelect'].forEach(id => {
                 const el = document.getElementById(id);
-                if(el) el.innerHTML = '<option value="">Lütfen Seçiniz...</option>' + options;
+                if(el) el.innerHTML = '<option value="">Seçiniz...</option>' + options;
             });
         }
 
         function renderTeams() {
             const grid = document.getElementById('teamsGrid');
+            if(!grid) return;
             grid.innerHTML = state.teams.map(t => `
-                <div class="bg-white border border-gray-100 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all">
+                <div class="bg-white border p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-shadow">
                     <div class="flex justify-between items-start mb-4">
-                        <h3 class="font-black text-xl text-gray-800">${t.name}</h3>
-                        <div class="${state.isAdmin ? 'flex' : 'hidden'} gap-2">
-                            <button onclick="openEditModal('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-500 rounded-full hover:bg-blue-100">✎</button>
-                            <button onclick="deleteTeam('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-full hover:bg-red-100">✕</button>
-                        </div>
+                        <h3 class="font-black text-xl">${t.name}</h3>
+                        <button onclick="deleteTeam('${t.id}')" class="admin-only text-red-400 hover:text-red-600">✕</button>
                     </div>
                     <div class="space-y-2">
-                        ${t.players.map(p => `
-                            <div class="text-sm font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 bg-[var(--primary-bg)] rounded-full opacity-40"></span>
-                                ${p}
-                            </div>
-                        `).join('') || '<span class="text-xs italic text-gray-300 ml-1">Henüz oyuncu atanmamış</span>'}
+                        ${(t.players || []).length > 0 ? t.players.map(p => `<div class="text-sm bg-gray-50 p-2 rounded-xl border">${p}</div>`).join('') : '<p class="text-gray-400 text-xs italic">Henüz oyuncu yok</p>'}
                     </div>
                 </div>`).join('');
         }
 
         function renderFixtures() {
             const list = document.getElementById('fixturesList');
+            if(!list) return;
+            if(state.matches.length === 0) { list.innerHTML = '<p class="text-center text-gray-400 py-10">Henüz planlanmış maç yok.</p>'; return; }
+            
             list.innerHTML = state.matches.map(m => {
                 const home = state.teams.find(t => t.id === m.homeId)?.name || '...';
                 const away = state.teams.find(t => t.id === m.awayId)?.name || '...';
                 return `
-                <div class="bg-white border-2 border-gray-50 rounded-3xl p-5 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-[var(--primary-bg)]/20 transition-all">
-                    <div class="flex-1 text-center md:text-right font-black text-lg text-gray-700">${home}</div>
-                    <div class="flex items-center gap-4 bg-gray-100 p-2 rounded-2xl">
-                        <input type="number" id="score-h-${m.id}" ${!state.isAdmin ? 'readonly' : ''} 
-                            class="w-14 p-3 bg-white border-none rounded-xl text-center font-black text-xl shadow-inner outline-none focus:ring-2 ring-[var(--primary-bg)]/30" 
-                            value="${m.homeScore !== null ? m.homeScore : ''}">
-                        <span class="font-black text-gray-400"> : </span>
-                        <input type="number" id="score-a-${m.id}" ${!state.isAdmin ? 'readonly' : ''} 
-                            class="w-14 p-3 bg-white border-none rounded-xl text-center font-black text-xl shadow-inner outline-none focus:ring-2 ring-[var(--primary-bg)]/30" 
-                            value="${m.awayScore !== null ? m.awayScore : ''}">
+                <div class="bg-white border rounded-3xl p-5 flex items-center justify-between gap-4">
+                    <div class="flex-1 text-right font-bold truncate">${home}</div>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" id="score-h-${m.id}" class="w-12 p-2 border rounded-lg text-center font-bold" value="${m.homeScore !== null ? m.homeScore : ''}">
+                        <span class="font-black text-gray-300">-</span>
+                        <input type="number" id="score-a-${m.id}" class="w-12 p-2 border rounded-lg text-center font-bold" value="${m.awayScore !== null ? m.awayScore : ''}">
                     </div>
-                    <div class="flex-1 text-center md:text-left font-black text-lg text-gray-700">${away}</div>
-                    <div class="${state.isAdmin ? 'flex' : 'hidden'} gap-3">
-                        <button onclick="saveScore('${m.id}')" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all">KAYDET</button>
-                        <button onclick="deleteMatch('${m.id}')" class="text-red-400 p-2 hover:bg-red-50 rounded-xl transition-colors">✕</button>
+                    <div class="flex-1 font-bold truncate">${away}</div>
+                    <div class="flex gap-2">
+                        <button onclick="saveScore('${m.id}')" class="admin-only bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-700">KAYDET</button>
+                        <button onclick="deleteMatch('${m.id}')" class="admin-only text-red-400 hover:text-red-600 p-2">✕</button>
                     </div>
                 </div>`;
             }).join('');
         }
 
         function renderStandings() {
-            const standings = {};
-            state.teams.forEach(t => standings[t.id] = { name: t.name, o:0, g:0, b:0, m:0, ag:0, yg:0, pts:0 });
+            const s = {};
+            state.teams.forEach(t => s[t.id] = { name: t.name, o:0, g:0, b:0, m:0, ag:0, yg:0, pts:0 });
             state.matches.filter(m => m.completed).forEach(m => {
-                const h = standings[m.homeId], a = standings[m.awayId];
+                const h = s[m.homeId], a = s[m.awayId];
                 if(!h || !a) return;
                 h.o++; a.o++; h.ag += m.homeScore; h.yg += m.awayScore; a.ag += m.awayScore; a.yg += m.homeScore;
                 if (state.sport === 'football') {
@@ -423,67 +394,29 @@
                     else if (m.homeScore < m.awayScore) { a.g++; a.pts += 3; h.m++; }
                     else { h.b++; a.b++; h.pts += 1; a.pts += 1; }
                 } else {
-                    if (m.homeScore > m.awayScore) { h.g++; a.m++; if (m.homeScore - m.awayScore >= 2) h.pts += 3; else { h.pts += 2; a.pts += 1; } }
-                    else { a.g++; h.m++; if (m.awayScore - m.homeScore >= 2) a.pts += 3; else { a.pts += 2; h.pts += 1; } }
+                    if (m.homeScore > m.awayScore) { h.g++; a.m++; h.pts += 3; }
+                    else { a.g++; h.m++; a.pts += 3; }
                 }
             });
-            const sorted = Object.values(standings).sort((a,b) => b.pts - a.pts || (b.ag - b.yg) - (a.ag - a.yg));
-            document.getElementById('standingsList').innerHTML = sorted.map((t, i) => `
-                <tr class="border-b last:border-0 hover:bg-gray-50 transition-colors">
-                    <td class="p-4 text-center font-black text-gray-300 text-lg">${i+1}</td>
-                    <td class="p-4 font-black text-gray-800">${t.name}</td>
-                    <td class="p-4 text-center font-bold">${t.o}</td>
-                    <td class="p-4 text-center text-green-600 font-bold">${t.g}</td>
-                    <td class="p-4 text-center font-bold" style="display: ${state.sport === 'football' ? 'table-cell' : 'none'}">${t.b}</td>
-                    <td class="p-4 text-center text-red-500 font-bold">${t.m}</td>
-                    <td class="p-4 text-center text-gray-400 font-medium">${t.ag}</td>
-                    <td class="p-4 text-center text-gray-400 font-medium">${t.yg}</td>
-                    <td class="p-4 text-center bg-gray-50 font-black text-xl text-[var(--primary-bg)]">${t.pts}</td>
+            const sorted = Object.values(s).sort((a,b) => b.pts - a.pts || (b.ag-b.yg) - (a.ag-a.yg));
+            const list = document.getElementById('standingsList');
+            if(!list) return;
+            list.innerHTML = sorted.map((t, i) => `
+                <tr class="border-b hover:bg-gray-50 transition-colors">
+                    <td class="p-4 text-center font-bold text-gray-400">${i+1}</td>
+                    <td class="p-4 font-bold text-gray-800">${t.name}</td>
+                    <td class="p-4 text-center">${t.o}</td>
+                    <td class="p-4 text-center text-green-600">${t.g}</td>
+                    <td class="p-4 text-center text-orange-500" style="display: ${state.sport === 'football' ? 'table-cell' : 'none'}">${t.b}</td>
+                    <td class="p-4 text-center text-red-500">${t.m}</td>
+                    <td class="p-4 text-center text-gray-500 text-xs">${t.ag}</td>
+                    <td class="p-4 text-center text-gray-500 text-xs">${t.yg}</td>
+                    <td class="p-4 text-center font-black text-blue-700 bg-blue-50/50">${t.pts}</td>
                 </tr>`).join('');
         }
 
-        window.showMsg = (t, m) => {
-            document.getElementById('msgTitle').innerText = t;
-            document.getElementById('msgText').innerText = m;
-            document.getElementById('msgModal').classList.replace('hidden', 'flex');
-        };
-        window.closeMsgModal = () => document.getElementById('msgModal').classList.replace('flex', 'hidden');
-        
-        let editingId = null;
-        window.openEditModal = (id) => {
-            editingId = id;
-            const t = state.teams.find(x => x.id === id);
-            document.getElementById('editTeamNameInput').value = t.name;
-            renderEditPlayersList(t.players);
-            document.getElementById('editModal').classList.replace('hidden', 'flex');
-        };
-        window.closeEditModal = () => {
-            document.getElementById('editModal').classList.replace('flex', 'hidden');
-            editingId = null;
-        };
-        
-        function renderEditPlayersList(players) {
-            document.getElementById('editPlayersList').innerHTML = players.map((p, i) => `
-                <div class="flex gap-2 items-center bg-gray-50 p-2 rounded-2xl border border-gray-100">
-                    <input type="text" value="${p}" class="flex-1 p-2.5 bg-white border-2 rounded-xl edit-p-input font-medium outline-none focus:border-blue-400">
-                    <button onclick="removePFromEdit(${i})" class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors">✕</button>
-                </div>`).join('');
-        }
-        window.removePFromEdit = (idx) => {
-            const t = state.teams.find(x => x.id === editingId);
-            t.players.splice(idx, 1);
-            renderEditPlayersList(t.players);
-        };
-        document.getElementById('saveEditBtn').onclick = async () => {
-            const name = document.getElementById('editTeamNameInput').value.trim();
-            const players = Array.from(document.querySelectorAll('.edit-p-input')).map(i => i.value.trim()).filter(x => x);
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', `teams_${state.sport}`, editingId), { name, players });
-            closeEditModal();
-        };
-
-        init();
-        // Varsayılan tab'ı aktif et
-        switchTab('teams');
+        // Başlat
+        startApp();
     </script>
 </body>
 </html>
